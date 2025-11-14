@@ -7,16 +7,35 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 // Create a connection pool for PostgreSQL
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'document_management',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD,
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection cannot be established
-});
+// Support both DATABASE_URL (for Supabase) and individual connection parameters
+let poolConfig;
+
+if (process.env.DATABASE_URL) {
+  // Use DATABASE_URL (Supabase provides this)
+  poolConfig = {
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DB_SSL === 'true' || process.env.DATABASE_URL.includes('supabase') 
+      ? { rejectUnauthorized: false } 
+      : false,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  };
+} else {
+  // Fallback to individual connection parameters
+  poolConfig = {
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'document_management',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  };
+}
+
+const pool = new Pool(poolConfig);
 
 // Test database connection
 pool.on('connect', () => {

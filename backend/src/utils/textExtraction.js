@@ -1,22 +1,20 @@
 /**
  * Text Extraction Utility
  * Extracts text content from various document formats for indexing
+ * Updated to work with file buffers instead of file paths
  */
 
-const fs = require('fs');
-const path = require('path');
 const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 
 /**
- * Extract text from PDF file
- * @param {string} filePath - Path to PDF file
+ * Extract text from PDF buffer
+ * @param {Buffer} fileBuffer - PDF file buffer
  * @returns {Promise<string>} Extracted text
  */
-const extractTextFromPDF = async (filePath) => {
+const extractTextFromPDF = async (fileBuffer) => {
   try {
-    const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdfParse(dataBuffer);
+    const data = await pdfParse(fileBuffer);
     return data.text;
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
@@ -25,13 +23,13 @@ const extractTextFromPDF = async (filePath) => {
 };
 
 /**
- * Extract text from DOCX file
- * @param {string} filePath - Path to DOCX file
+ * Extract text from DOCX buffer
+ * @param {Buffer} fileBuffer - DOCX file buffer
  * @returns {Promise<string>} Extracted text
  */
-const extractTextFromDOCX = async (filePath) => {
+const extractTextFromDOCX = async (fileBuffer) => {
   try {
-    const result = await mammoth.extractRawText({ path: filePath });
+    const result = await mammoth.extractRawText({ buffer: fileBuffer });
     return result.value;
   } catch (error) {
     console.error('Error extracting text from DOCX:', error);
@@ -40,13 +38,13 @@ const extractTextFromDOCX = async (filePath) => {
 };
 
 /**
- * Extract text from TXT file
- * @param {string} filePath - Path to TXT file
+ * Extract text from TXT buffer
+ * @param {Buffer} fileBuffer - TXT file buffer
  * @returns {Promise<string>} Extracted text
  */
-const extractTextFromTXT = async (filePath) => {
+const extractTextFromTXT = async (fileBuffer) => {
   try {
-    return fs.readFileSync(filePath, 'utf-8');
+    return fileBuffer.toString('utf-8');
   } catch (error) {
     console.error('Error reading text file:', error);
     throw new Error('Failed to read text file');
@@ -55,24 +53,24 @@ const extractTextFromTXT = async (filePath) => {
 
 /**
  * Main function to extract text based on file type
- * @param {string} filePath - Path to file
+ * @param {Buffer} fileBuffer - File buffer
  * @param {string} fileType - File extension (without dot)
  * @returns {Promise<string|null>} Extracted text or null if not supported
  */
-const extractText = async (filePath, fileType) => {
+const extractText = async (fileBuffer, fileType) => {
   const ext = fileType.toLowerCase();
   
   try {
     switch (ext) {
       case 'pdf':
-        return await extractTextFromPDF(filePath);
+        return await extractTextFromPDF(fileBuffer);
       
       case 'docx':
       case 'doc':
-        return await extractTextFromDOCX(filePath);
+        return await extractTextFromDOCX(fileBuffer);
       
       case 'txt':
-        return await extractTextFromTXT(filePath);
+        return await extractTextFromTXT(fileBuffer);
       
       case 'jpg':
       case 'jpeg':

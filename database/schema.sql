@@ -1,6 +1,5 @@
 -- PostgreSQL Database Schema for Centralized Document Management System
 
--- Enable extensions for full-text search
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- Users table
@@ -16,7 +15,6 @@ CREATE TABLE IF NOT EXISTS users (
     last_login TIMESTAMP
 );
 
--- Create index on email for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
@@ -38,21 +36,13 @@ CREATE TABLE IF NOT EXISTS documents (
     FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Create indexes for faster searches
 CREATE INDEX IF NOT EXISTS idx_documents_uploaded_by ON documents(uploaded_by);
 CREATE INDEX IF NOT EXISTS idx_documents_file_type ON documents(file_type);
 CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at DESC);
 
--- Create full-text search index on title, description, and extracted_text
-CREATE INDEX IF NOT EXISTS idx_documents_search ON documents USING GIN (
-    to_tsvector('english', COALESCE(title, '') || ' ' || COALESCE(description, '') || ' ' || COALESCE(extracted_text, ''))
-);
 
--- Create trigram index for fuzzy searching on title and file_name
-CREATE INDEX IF NOT EXISTS idx_documents_title_trgm ON documents USING GIN (title gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_documents_filename_trgm ON documents USING GIN (file_name gin_trgm_ops);
 
--- Document keywords table (for tagging/categorization)
+-- Document keywords table (for tagging)
 CREATE TABLE IF NOT EXISTS document_keywords (
     id SERIAL PRIMARY KEY,
     document_id INTEGER NOT NULL,
@@ -125,11 +115,7 @@ SELECT
          FROM document_keywords dk 
          WHERE dk.document_id = d.id),
         ''
-    ) as keywords,
-    ts_rank(
-        to_tsvector('english', COALESCE(d.title, '') || ' ' || COALESCE(d.description, '') || ' ' || COALESCE(d.extracted_text, '')),
-        plainto_tsquery('english', '')
-    ) as search_rank
+    ) as keywords
 FROM documents d
 JOIN users u ON d.uploaded_by = u.id;
 
@@ -139,15 +125,8 @@ INSERT INTO users (username, email, password_hash, full_name, role)
 VALUES (
     'admin',
     'admin@example.com',
-    '$2b$10$rKvHqxqK1lF5H5p5QfPyVOXNLZJ2zZkXZ3HxPvXNZ3HxPvXNZ3HxP',
+    '$2b$10$m/job4vYT1JTNnGBbMgSKelh9wxUdWTpCFqi8xTAfuFUkYgt0PXPm',
     'System Administrator',
     'admin'
 ) ON CONFLICT (username) DO NOTHING;
 
--- Comments for documentation
-COMMENT ON TABLE users IS 'Stores user authentication and profile information';
-COMMENT ON TABLE documents IS 'Main document storage table with metadata and extracted text for search';
-COMMENT ON TABLE document_keywords IS 'Keywords/tags associated with documents for categorization';
-COMMENT ON TABLE document_versions IS 'Version history for documents';
-COMMENT ON COLUMN documents.extracted_text IS 'Full text extracted from document for search indexing';
-COMMENT ON COLUMN documents.metadata IS 'Additional flexible metadata stored as JSON';

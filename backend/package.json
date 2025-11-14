@@ -27,7 +27,8 @@
     "helmet": "^7.1.0",
     "express-rate-limit": "^7.1.5",
     "pdf-parse": "^1.1.1",
-    "mammoth": "^1.6.0"
+    "mammoth": "^1.6.0",
+    "@supabase/supabase-js": "^2.39.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

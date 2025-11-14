@@ -12,20 +12,28 @@ export default function Upload() {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!formData.file) {
+      setError('Please select a file to upload');
+      return;
+    }
+
     setLoading(true);
+    setError('');
+    setSuccess(false);
 
     try {
-      const tagsArray = formData.tags.split(',').map((tag) => tag.trim()).filter((tag) => tag);
+      const tagsArray = formData.tags ? formData.tags.split(',').map((tag) => tag.trim()).filter((tag) => tag) : [];
       await uploadDocument({
         title: formData.title,
         description: formData.description,
         tags: tagsArray,
-        fileType: formData.fileType,
-        snippet: formData.description.substring(0, 100) + '...',
+        file: formData.file,
       });
 
       setSuccess(true);
@@ -34,6 +42,7 @@ export default function Upload() {
       }, 2000);
     } catch (error) {
       console.error('Error uploading document:', error);
+      setError(error.response?.data?.message || error.message || 'Failed to upload document. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -57,6 +66,12 @@ export default function Upload() {
       {success && (
         <div className="mb-6 p-4 bg-secondary/10 border border-secondary text-secondary rounded-lg">
           Document uploaded successfully! Redirecting to dashboard...
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          {error}
         </div>
       )}
 

@@ -12,37 +12,77 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // In a real app, you'd verify the token with the backend here
-      // For this mock version, we'll just set a dummy user
-      setCurrentUser({ email: 'admin@example.com' }); 
-    }
-    setLoading(false);
+    const verifyToken = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          // Verify token by fetching user profile
+          const response = await api.get('/auth/me');
+          if (response.data.success) {
+            setCurrentUser(response.data.data);
+          } else {
+            localStorage.removeItem('token');
+          }
+        } catch (error) {
+          console.error('Token verification failed:', error);
+          localStorage.removeItem('token');
+        }
+      }
+      setLoading(false);
+    };
+
+    verifyToken();
   }, []);
 
-  const login = async (email, password) => {
-    // In a real app, this would be an API call
-    if (email === 'admin@example.com' && password === 'admin123') {
-      const token = 'mock-token';
-      localStorage.setItem('token', token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setCurrentUser({ email });
-      return true;
+  const login = async (usernameOrEmail, password) => {
+    try {
+      const response = await api.post('/auth/login', {
+        username: usernameOrEmail, // Backend accepts username or email
+        password,
+      });
+
+      if (response.data.success) {
+        const { token, user } = response.data.data;
+        localStorage.setItem('token', token);
+        setCurrentUser(user);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
-    return false;
+  };
+
+  const register = async (userData) => {
+    try {
+      const response = await api.post('/auth/register', userData);
+
+      if (response.data.success) {
+        const { token, user } = response.data.data;
+        localStorage.setItem('token', token);
+        setCurrentUser(user);
+        return { success: true };
+      }
+      return { success: false, message: response.data.message };
+    } catch (error) {
+      console.error('Registration error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Registration failed',
+      };
+    }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    delete api.defaults.headers.common['Authorization'];
     setCurrentUser(null);
   };
 
   const value = {
     currentUser,
     login,
+    register,
     logout,
   };
 

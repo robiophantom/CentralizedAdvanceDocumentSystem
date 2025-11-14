@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
 import VersionHistoryModal from '../components/VersionHistoryModal';
-import { getDocumentById, getVersions } from '../services/documentService';
+import { getDocumentById, getVersions, updateDocument } from '../services/documentService';
 
 export default function DocumentView() {
   const { id } = useParams();
@@ -40,10 +40,16 @@ export default function DocumentView() {
     }
   };
 
-  const handleSaveTags = () => {
-    const newTags = editTags.split(',').map((tag) => tag.trim()).filter((tag) => tag);
-    setDocument({ ...document, tags: newTags });
-    setIsEditing(false);
+  const handleSaveTags = async () => {
+    try {
+      const newTags = editTags.split(',').map((tag) => tag.trim()).filter((tag) => tag);
+      await updateDocument(id, { keywords: newTags.join(',') });
+      setDocument({ ...document, tags: newTags });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating tags:', error);
+      alert('Failed to update tags. Please try again.');
+    }
   };
 
   if (loading) return <Loader />;

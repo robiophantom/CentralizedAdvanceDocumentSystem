@@ -1,32 +1,15 @@
 /**
  * File Upload Utility
  * Configures multer for handling file uploads with validation
+ * Uses memory storage to upload directly to Supabase Storage
  */
 
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 require('dotenv').config();
 
-// Ensure uploads directory exists
-const uploadDir = process.env.UPLOAD_PATH || './uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename: timestamp-randomstring-originalname
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    const nameWithoutExt = path.basename(file.originalname, ext);
-    cb(null, nameWithoutExt + '-' + uniqueSuffix + ext);
-  }
-});
+// Use memory storage since files will be uploaded directly to Supabase
+const storage = multer.memoryStorage();
 
 // File filter to validate file types
 const fileFilter = (req, file, cb) => {
@@ -54,22 +37,15 @@ const upload = multer({
 });
 
 /**
- * Delete a file from the filesystem
- * @param {string} filePath - Path to file to delete
- * @returns {Promise<boolean>} True if deleted successfully
+ * Generate unique filename for storage
+ * @param {string} originalName - Original file name
+ * @returns {string} Unique filename
  */
-const deleteFile = async (filePath) => {
-  try {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      console.log(`File deleted: ${filePath}`);
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error('Error deleting file:', error);
-    throw error;
-  }
+const generateFileName = (originalName) => {
+  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+  const ext = path.extname(originalName);
+  const nameWithoutExt = path.basename(originalName, ext);
+  return nameWithoutExt + '-' + uniqueSuffix + ext;
 };
 
 /**
@@ -87,7 +63,6 @@ const formatFileSize = (bytes) => {
 
 module.exports = {
   upload,
-  deleteFile,
+  generateFileName,
   formatFileSize,
-  uploadDir,
 };

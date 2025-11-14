@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
 import VersionHistoryModal from '../components/VersionHistoryModal';
-import { getDocuments, getVersions } from '../services/documentService';
+import { getDocuments, getVersions, deleteDocument } from '../services/documentService';
 
 export default function AdminPanel() {
   const [documents, setDocuments] = useState([]);
@@ -38,9 +38,15 @@ export default function AdminPanel() {
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this document?')) {
-      setDocuments(documents.filter((doc) => doc.id !== id));
+      try {
+        await deleteDocument(id);
+        setDocuments(documents.filter((doc) => doc.id !== id));
+      } catch (error) {
+        console.error('Error deleting document:', error);
+        alert('Failed to delete document. Please try again.');
+      }
     }
   };
 

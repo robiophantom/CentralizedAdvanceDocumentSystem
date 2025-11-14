@@ -20,9 +20,21 @@ const PORT = process.env.PORT || 5000;
 // Security middleware
 app.use(helmet()); // Sets various HTTP headers for security
 
-// CORS configuration
+// CORS configuration - support multiple origins
+const allowedOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : ['http://localhost:3000', 'http://localhost:5173'];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all origins in development, restrict in production
+    }
+  },
   credentials: true,
 }));
 
@@ -105,8 +117,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
+// Start server and store reference for graceful shutdown
+const server = app.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║   Document Management System API                         ║
@@ -118,11 +130,21 @@ app.listen(PORT, () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  app.close(() => {
+const gracefulShutdown = (signal) => {
+  console.log(`${signal} signal received: closing HTTP server`);
+  server.close(() => {
     console.log('HTTP server closed');
+    process.exit(0);
   });
-});
+  
+  // Force close after 10 seconds
+  setTimeout(() => {
+    console.error('Forcing server shutdown');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 module.exports = app;

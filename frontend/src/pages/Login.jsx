@@ -25,13 +25,14 @@ const Login = () => {
       if (success) {
         navigate('/');
       } else {
-        setError('Invalid credentials');
+        setError('Invalid credentials. Please check your username/email and password.');
       }
     } catch (err) {
-        console.error(err)
-        setError('Failed to log in');
+      console.error(err);
+      setError(err.response?.data?.message || 'Failed to log in. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

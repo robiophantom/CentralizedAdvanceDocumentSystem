@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ const Register = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -19,18 +21,41 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
+    
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
     setLoading(true);
     setError('');
-    // Mock registration
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log('Registered with:', formData);
-    // On successful registration, redirect to login
-    navigate('/login');
-    setLoading(false);
+    
+    try {
+      const result = await register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.fullName,
+      });
+
+      if (result.success) {
+        // Registration successful, user is automatically logged in
+        navigate('/');
+      } else {
+        setError(result.message || 'Registration failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

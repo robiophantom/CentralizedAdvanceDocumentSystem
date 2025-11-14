@@ -4,7 +4,8 @@
  */
 
 const db = require('../config/database');
-const { deleteFile } = require('../utils/fileUpload');
+const { generateFileName } = require('../utils/fileUpload');
+const { uploadFile, deleteFile: deleteFromStorage } = require('../utils/supabaseStorage');
 const { extractText, cleanText } = require('../utils/textExtraction');
 const path = require('path');
 
@@ -24,10 +25,22 @@ const uploadDocument = async (req, res) => {
   const file = req.file;
 
   try {
-    // Extract text from document for search indexing
-    const fileType = path.extname(file.originalname).substring(1);
-    let extractedText = await extractText(file.path, fileType);
+    // Generate unique filename
+    const fileType = path.extname(file.originalname).substring(1).toLowerCase();
+    const uniqueFileName = generateFileName(file.originalname);
+
+    // Extract text from document for search indexing (using buffer)
+    let extractedText = await extractText(file.buffer, fileType);
     extractedText = cleanText(extractedText);
+
+    // Upload file to Supabase Storage
+    let uploadResult;
+    try {
+      uploadResult = await uploadFile(file.buffer, uniqueFileName, file.mimetype);
+    } catch (uploadError) {
+      console.error('Error uploading to Supabase Storage:', uploadError);
+      throw new Error('Failed to upload file to storage');
+    }
 
     // Insert document into database
     const result = await db.query(
@@ -39,7 +52,7 @@ const uploadDocument = async (req, res) => {
         title || file.originalname,
         description || null,
         file.originalname,
-        file.path,
+        uploadResult.path, // Store Supabase storage path
         file.size,
         fileType,
         file.mimetype,
@@ -75,9 +88,14 @@ const uploadDocument = async (req, res) => {
       },
     });
   } catch (error) {
-    // If database insert fails, delete the uploaded file
-    if (req.file) {
-      await deleteFile(req.file.path);
+    // If database insert fails and file was uploaded, try to delete from storage
+    // Note: uploadResult might not be defined if upload failed
+    if (typeof uploadResult !== 'undefined' && uploadResult && uploadResult.path) {
+      try {
+        await deleteFromStorage(uploadResult.path);
+      } catch (deleteError) {
+        console.error('Error cleaning up uploaded file:', deleteError);
+      }
     }
     console.error('Document upload error:', error);
     res.status(500).json({
@@ -312,8 +330,8 @@ const deleteDocument = async (req, res) => {
       });
     }
 
-    // Delete file from filesystem
-    await deleteFile(document.file_path);
+    // Delete file from Supabase Storage
+    await deleteFromStorage(document.file_path);
 
     // Delete from database (cascades to keywords and versions)
     await db.query('DELETE FROM documents WHERE id = $1', [id]);
