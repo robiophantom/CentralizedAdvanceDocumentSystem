@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://api.cadms.mock',
+  baseURL: 'http://localhost:5000/api', // Adjust this to your backend's URL
   headers: {
     'Content-Type': 'application/json',
   },

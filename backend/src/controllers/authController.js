@@ -117,9 +117,11 @@ const login = async (req, res) => {
     }
 
     const user = result.rows[0];
+    console.log('User from DB:', user); 
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    console.log('Is password valid:', isPasswordValid); 
 
     if (!isPasswordValid) {
       return res.status(401).json({
