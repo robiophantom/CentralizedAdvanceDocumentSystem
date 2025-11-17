@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           // Verify token by fetching user profile
-          const response = await api.get('/auth/me');
+          const response = await api.get('/api/auth/me');
           if (response.data.success) {
             setCurrentUser(response.data.data);
           } else {
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (usernameOrEmail, password) => {
     try {
-      const response = await api.post('/auth/login', {
+      const response = await api.post('/api/auth/login', {
         username: usernameOrEmail, // Backend accepts username or email
         password,
       });
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await api.post('/auth/register', userData);
+      const response = await api.post('/api/auth/register', userData);
 
       if (response.data.success) {
         const { token, user } = response.data.data;
