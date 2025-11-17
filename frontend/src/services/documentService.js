@@ -1,5 +1,7 @@
 import api from './api';
 
+const DOCUMENTS_ENDPOINT = '/api/documents';
+
 /**
  * Transform API document to frontend format
  */
@@ -23,7 +25,7 @@ const transformDocument = (doc) => {
 
 export const getDocuments = async () => {
   try {
-    const response = await api.get('/documents');
+    const response = await api.get(DOCUMENTS_ENDPOINT);
     if (response.data.success) {
       return response.data.data.map(transformDocument);
     }
@@ -39,7 +41,7 @@ export const searchDocuments = async (query) => {
     if (!query || query.trim() === '') {
       return getDocuments();
     }
-    const response = await api.get('/documents/search', {
+    const response = await api.get(`${DOCUMENTS_ENDPOINT}/search`, {
       params: { q: query },
     });
     if (response.data.success) {
@@ -64,7 +66,7 @@ export const uploadDocument = async (formData) => {
       data.append('keywords', formData.tags.join(','));
     }
 
-    const response = await api.post('/documents/upload', data, {
+    const response = await api.post(`${DOCUMENTS_ENDPOINT}/upload`, data, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -83,7 +85,7 @@ export const uploadDocument = async (formData) => {
 
 export const getDocumentById = async (id) => {
   try {
-    const response = await api.get(`/documents/${id}`);
+    const response = await api.get(`${DOCUMENTS_ENDPOINT}/${id}`);
     if (response.data.success) {
       return transformDocument(response.data.data);
     }
@@ -96,7 +98,7 @@ export const getDocumentById = async (id) => {
 
 export const updateDocument = async (id, updates) => {
   try {
-    const response = await api.put(`/documents/${id}`, updates);
+    const response = await api.put(`${DOCUMENTS_ENDPOINT}/${id}`, updates);
     if (response.data.success) {
       return transformDocument(response.data.data);
     }
@@ -109,7 +111,7 @@ export const updateDocument = async (id, updates) => {
 
 export const deleteDocument = async (id) => {
   try {
-    const response = await api.delete(`/documents/${id}`);
+    const response = await api.delete(`${DOCUMENTS_ENDPOINT}/${id}`);
     if (response.data.success) {
       return true;
     }
