@@ -71,3 +71,21 @@ export const getInitials = (name) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
+/**
+ * Get time-based greeting
+ * @returns {string} Greeting based on time of day (e.g., "Good morning", "Good afternoon")
+ */
+export const getTimeBasedGreeting = () => {
+  const hour = new Date().getHours();
+  
+  if (hour < 12) {
+    return 'Good morning';
+  } else if (hour < 17) {
+    return 'Good afternoon';
+  } else if (hour < 21) {
+    return 'Good evening';
+  } else {
+    return 'Good night';
+  }
+};
+
