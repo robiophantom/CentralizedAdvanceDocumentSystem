@@ -16,6 +16,7 @@ router.use(authenticateToken);
 router.post('/upload', upload.single('file'), documentController.uploadDocument);
 router.get('/search', documentController.searchDocuments);
 router.get('/', documentController.getDocuments);
+router.get('/:id/preview', documentController.previewDocument);
 router.get('/:id/download', documentController.downloadDocument);
 router.get('/:id', documentController.getDocumentById);
 router.put('/:id', documentController.updateDocument);

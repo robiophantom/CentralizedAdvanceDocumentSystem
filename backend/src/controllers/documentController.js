@@ -324,6 +324,50 @@ const getDocumentById = async (req, res) => {
 };
 
 /**
+ * Preview document (serves file with inline headers)
+ * GET /api/documents/:id/preview
+ */
+const previewDocument = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Get document info
+    const result = await db.query(
+      'SELECT * FROM documents WHERE id = $1',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found',
+      });
+    }
+
+    const document = result.rows[0];
+
+    // Download file from Supabase Storage
+    const fileData = await downloadFile(document.file_path, document.mime_type);
+
+    // Set headers for inline viewing (not download)
+    res.setHeader('Content-Type', fileData.mimeType || document.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${document.file_name || fileData.fileName}"`);
+    res.setHeader('Content-Length', fileData.data.length);
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+
+    // Send file
+    res.send(fileData.data);
+  } catch (error) {
+    console.error('Preview document error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error previewing document',
+      error: error.message,
+    });
+  }
+};
+
+/**
  * Download document
  * GET /api/documents/:id/download
  */
@@ -550,6 +594,7 @@ module.exports = {
   searchDocuments,
   getDocuments,
   getDocumentById,
+  previewDocument,
   downloadDocument,
   deleteDocument,
   updateDocument,

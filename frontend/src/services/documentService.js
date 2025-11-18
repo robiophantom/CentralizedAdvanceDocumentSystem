@@ -128,6 +128,16 @@ export const getVersions = async (id) => {
 };
 
 /**
+ * Get preview URL for a document
+ * @param {number} id - Document ID
+ * @returns {string} Preview URL
+ */
+export const getDocumentPreviewUrl = (id) => {
+  const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  return `${baseURL}${DOCUMENTS_ENDPOINT}/${id}/preview`;
+};
+
+/**
  * Download a document
  * @param {number} id - Document ID
  * @param {string} fileName - Optional custom filename for download
