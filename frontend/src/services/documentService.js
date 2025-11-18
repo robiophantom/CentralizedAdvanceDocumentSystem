@@ -126,3 +126,58 @@ export const getVersions = async (id) => {
   // TODO: Implement version history API endpoint
   return [];
 };
+
+/**
+ * Download a document
+ * @param {number} id - Document ID
+ * @param {string} fileName - Optional custom filename for download
+ * @returns {Promise<void>}
+ */
+export const downloadDocument = async (id, fileName = null) => {
+  try {
+    const response = await api.get(`${DOCUMENTS_ENDPOINT}/${id}/download`, {
+      responseType: 'blob', // Important for file downloads
+    });
+
+    // Get filename from Content-Disposition header if available
+    const contentDisposition = response.headers['content-disposition'];
+    let downloadFileName = fileName;
+    
+    if (!downloadFileName && contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+      if (fileNameMatch) {
+        downloadFileName = fileNameMatch[1];
+      }
+    }
+    
+    // Fallback to default filename
+    if (!downloadFileName) {
+      downloadFileName = `document-${id}.pdf`;
+    }
+
+    // Create a blob from the response
+    const blob = new Blob([response.data]);
+    
+    // Create a temporary URL for the blob
+    const url = window.URL.createObjectURL(blob);
+    
+    // Create a temporary anchor element and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = downloadFileName;
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading document:', error);
+    if (error.response?.status === 404) {
+      throw new Error('Document not found');
+    } else if (error.response?.status === 403) {
+      throw new Error('Permission denied');
+    }
+    throw error;
+  }
+};

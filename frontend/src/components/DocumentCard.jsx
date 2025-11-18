@@ -4,7 +4,7 @@ import { FaEye, FaEllipsisV, FaDownload, FaShare, FaTrash } from 'react-icons/fa
 import { getFileIcon, getFileIconColor, getFileIconBg } from '../utils/fileIcons';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { deleteDocument } from '../services/documentService';
+import { deleteDocument, downloadDocument } from '../services/documentService';
 import toast from 'react-hot-toast';
 
 export default function DocumentCard({ document, onDelete }) {
@@ -12,6 +12,7 @@ export default function DocumentCard({ document, onDelete }) {
   const { currentUser } = useAuth();
   const [showActions, setShowActions] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const FileIcon = getFileIcon(document.fileType);
   const iconColor = getFileIconColor(document.fileType);
   const iconBg = getFileIconBg(document.fileType);
@@ -35,8 +36,16 @@ export default function DocumentCard({ document, onDelete }) {
     if (action === 'view') {
       navigate(`/document/${document.id}`);
     } else if (action === 'download') {
-      // TODO: Implement download
-      console.log('Download:', document.id);
+      setIsDownloading(true);
+      try {
+        await downloadDocument(document.id, document.file_name || document.title);
+        toast.success('Document downloaded successfully');
+      } catch (error) {
+        toast.error('Failed to download document');
+        console.error('Download error:', error);
+      } finally {
+        setIsDownloading(false);
+      }
     } else if (action === 'share') {
       // TODO: Implement share
       console.log('Share:', document.id);
@@ -132,10 +141,18 @@ export default function DocumentCard({ document, onDelete }) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={(e) => handleActionClick(e, 'download')}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm transition-colors"
+            disabled={isDownloading}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Download"
           >
-            <FaDownload className="w-4 h-4" />
+            {isDownloading ? (
+              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <FaDownload className="w-4 h-4" />
+            )}
           </motion.button>
           {canDelete && (
             <motion.button

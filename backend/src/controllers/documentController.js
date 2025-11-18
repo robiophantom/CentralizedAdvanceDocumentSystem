@@ -5,7 +5,7 @@
 
 const db = require('../config/database');
 const { generateFileName } = require('../utils/fileUpload');
-const { uploadFile, deleteFile: deleteFromStorage } = require('../utils/supabaseStorage');
+const { uploadFile, deleteFile: deleteFromStorage, downloadFile } = require('../utils/supabaseStorage');
 const { extractText, cleanText } = require('../utils/textExtraction');
 const { logActivity } = require('../utils/activityLogger');
 const path = require('path');
@@ -324,6 +324,62 @@ const getDocumentById = async (req, res) => {
 };
 
 /**
+ * Download document
+ * GET /api/documents/:id/download
+ */
+const downloadDocument = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Get document info
+    const result = await db.query(
+      'SELECT * FROM documents WHERE id = $1',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document not found',
+      });
+    }
+
+    const document = result.rows[0];
+
+    // Download file from Supabase Storage
+    const fileData = await downloadFile(document.file_path, document.mime_type);
+
+    // Log activity
+    await logActivity(
+      req.user.id,
+      'download',
+      'document',
+      parseInt(id),
+      `downloaded the document: ${document.title}`,
+      {
+        file_name: document.file_name,
+        file_type: document.file_type,
+      }
+    );
+
+    // Set headers for file download
+    res.setHeader('Content-Type', fileData.mimeType || document.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${document.file_name || fileData.fileName}"`);
+    res.setHeader('Content-Length', fileData.data.length);
+
+    // Send file
+    res.send(fileData.data);
+  } catch (error) {
+    console.error('Download document error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error downloading document',
+      error: error.message,
+    });
+  }
+};
+
+/**
  * Delete document
  * DELETE /api/documents/:id
  */
@@ -490,6 +546,7 @@ module.exports = {
   searchDocuments,
   getDocuments,
   getDocumentById,
+  downloadDocument,
   deleteDocument,
   updateDocument,
 };

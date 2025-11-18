@@ -119,9 +119,81 @@ const getPublicUrl = (filePath) => {
   return data.publicUrl;
 };
 
+/**
+ * Download a file from Supabase Storage
+ * @param {string} filePath - Path to file in storage bucket
+ * @param {string} mimeType - Optional MIME type from database
+ * @returns {Promise<{data: Buffer, mimeType: string, fileName: string}>} File data, MIME type, and filename
+ */
+const downloadFile = async (filePath, mimeType = null) => {
+  if (!supabase) {
+    throw new Error('Supabase client not initialized.');
+  }
+
+  try {
+    // Handle file path - could be just filename or full path
+    // Remove bucket name if present
+    let fileName = filePath;
+    if (fileName.includes(`${bucketName}/`)) {
+      fileName = fileName.replace(`${bucketName}/`, '');
+    }
+    // If it's a full path, get just the filename (last part after /)
+    if (fileName.includes('/')) {
+      fileName = fileName.split('/').pop();
+    }
+
+    // Download file from Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .download(fileName);
+
+    if (error) {
+      throw error;
+    }
+
+    // Use provided MIME type or try to determine from file extension
+    let finalMimeType = mimeType || 'application/octet-stream';
+    
+    if (!finalMimeType || finalMimeType === 'application/octet-stream') {
+      // Try to determine MIME type from file extension
+      const ext = fileName.split('.').pop()?.toLowerCase();
+      const mimeTypes = {
+        'pdf': 'application/pdf',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls': 'application/vnd.ms-excel',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ppt': 'application/vnd.ms-powerpoint',
+        'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'txt': 'text/plain',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'zip': 'application/zip',
+      };
+      finalMimeType = mimeTypes[ext] || 'application/octet-stream';
+    }
+
+    // Convert blob to buffer
+    const arrayBuffer = await data.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    return {
+      data: buffer,
+      mimeType: finalMimeType,
+      fileName: fileName.split('/').pop(),
+    };
+  } catch (error) {
+    console.error('Error downloading file from Supabase Storage:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   uploadFile,
   deleteFile,
   getPublicUrl,
+  downloadFile,
 };
 

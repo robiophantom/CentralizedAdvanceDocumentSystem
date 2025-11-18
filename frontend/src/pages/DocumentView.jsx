@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { FaDownload, FaClock } from 'react-icons/fa';
 import Loader from '../components/Loader';
 import VersionHistoryModal from '../components/VersionHistoryModal';
-import { getDocumentById, getVersions, updateDocument } from '../services/documentService';
+import { getDocumentById, getVersions, updateDocument, downloadDocument } from '../services/documentService';
+import toast from 'react-hot-toast';
 
 export default function DocumentView() {
   const { id } = useParams();
@@ -13,6 +16,7 @@ export default function DocumentView() {
   const [versions, setVersions] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editTags, setEditTags] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     loadDocument();
@@ -103,21 +107,48 @@ export default function DocumentView() {
             </div>
 
             <div className="flex gap-4">
-              <button className="flex-1 px-6 py-3 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors flex items-center justify-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download
-              </button>
-              <button
-                onClick={handleViewVersions}
-                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={async () => {
+                  setIsDownloading(true);
+                  try {
+                    await downloadDocument(document.id, document.file_name || document.title);
+                    toast.success('Document downloaded successfully');
+                  } catch (error) {
+                    toast.error('Failed to download document');
+                    console.error('Download error:', error);
+                  } finally {
+                    setIsDownloading(false);
+                  }
+                }}
+                disabled={isDownloading}
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                {isDownloading ? (
+                  <>
+                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <FaDownload className="w-5 h-5" />
+                    Download
+                  </>
+                )}
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleViewVersions}
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 font-medium"
+              >
+                <FaClock className="w-5 h-5" />
                 View Versions
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
