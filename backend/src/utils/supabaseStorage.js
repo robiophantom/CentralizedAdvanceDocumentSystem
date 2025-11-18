@@ -131,21 +131,26 @@ const downloadFile = async (filePath, mimeType = null) => {
   }
 
   try {
-    // Handle file path - could be just filename or full path
-    // Remove bucket name if present
-    let fileName = filePath;
-    if (fileName.includes(`${bucketName}/`)) {
-      fileName = fileName.replace(`${bucketName}/`, '');
+    // Handle file path - Supabase stores the path relative to the bucket
+    // The path from database is exactly what we need for download
+    let downloadPath = filePath;
+    
+    // Remove bucket name if present (shouldn't be, but just in case)
+    if (downloadPath.includes(`${bucketName}/`)) {
+      downloadPath = downloadPath.replace(`${bucketName}/`, '');
     }
-    // If it's a full path, get just the filename (last part after /)
-    if (fileName.includes('/')) {
-      fileName = fileName.split('/').pop();
+    
+    // Remove leading slash if present
+    if (downloadPath.startsWith('/')) {
+      downloadPath = downloadPath.substring(1);
     }
 
-    // Download file from Supabase Storage
+    console.log(`Downloading file from path: ${downloadPath}`);
+
+    // Download file from Supabase Storage using the exact path
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .download(fileName);
+      .download(downloadPath);
 
     if (error) {
       throw error;
@@ -156,7 +161,7 @@ const downloadFile = async (filePath, mimeType = null) => {
     
     if (!finalMimeType || finalMimeType === 'application/octet-stream') {
       // Try to determine MIME type from file extension
-      const ext = fileName.split('.').pop()?.toLowerCase();
+      const ext = downloadPath.split('.').pop()?.toLowerCase();
       const mimeTypes = {
         'pdf': 'application/pdf',
         'doc': 'application/msword',
@@ -179,10 +184,13 @@ const downloadFile = async (filePath, mimeType = null) => {
     const arrayBuffer = await data.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // Extract filename for response (last part of path)
+    const fileName = downloadPath.split('/').pop();
+
     return {
       data: buffer,
       mimeType: finalMimeType,
-      fileName: fileName.split('/').pop(),
+      fileName: fileName,
     };
   } catch (error) {
     console.error('Error downloading file from Supabase Storage:', error);

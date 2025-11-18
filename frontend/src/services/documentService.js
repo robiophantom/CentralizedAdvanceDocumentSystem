@@ -135,8 +135,15 @@ export const getVersions = async (id) => {
  */
 export const downloadDocument = async (id, fileName = null) => {
   try {
+    console.log(`Downloading document ${id}...`);
     const response = await api.get(`${DOCUMENTS_ENDPOINT}/${id}/download`, {
       responseType: 'blob', // Important for file downloads
+    });
+    
+    console.log('Download response received:', {
+      status: response.status,
+      headers: response.headers,
+      blobSize: response.data?.size,
     });
 
     // Get filename from Content-Disposition header if available
@@ -155,8 +162,18 @@ export const downloadDocument = async (id, fileName = null) => {
       downloadFileName = `document-${id}.pdf`;
     }
 
+    // Check if response is actually a blob
+    if (!response.data || !(response.data instanceof Blob)) {
+      console.error('Response is not a blob:', response.data);
+      throw new Error('Invalid file response');
+    }
+
     // Create a blob from the response
-    const blob = new Blob([response.data]);
+    const blob = new Blob([response.data], { 
+      type: response.headers['content-type'] || 'application/octet-stream' 
+    });
+    
+    console.log(`Blob created: ${blob.size} bytes, type: ${blob.type}`);
     
     // Create a temporary URL for the blob
     const url = window.URL.createObjectURL(blob);
@@ -165,18 +182,40 @@ export const downloadDocument = async (id, fileName = null) => {
     const link = document.createElement('a');
     link.href = url;
     link.download = downloadFileName;
+    link.style.display = 'none';
     document.body.appendChild(link);
+    
+    console.log(`Triggering download: ${downloadFileName}`);
     link.click();
     
-    // Clean up
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    // Clean up after a short delay to ensure download starts
+    setTimeout(() => {
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      console.log('Download cleanup completed');
+    }, 100);
   } catch (error) {
     console.error('Error downloading document:', error);
+    
+    // Handle blob error responses (they might be JSON error messages)
+    if (error.response?.data instanceof Blob) {
+      // Try to read the error message from the blob
+      error.response.data.text().then(text => {
+        try {
+          const errorData = JSON.parse(text);
+          console.error('Error from server:', errorData);
+        } catch (e) {
+          console.error('Error response text:', text);
+        }
+      });
+    }
+    
     if (error.response?.status === 404) {
       throw new Error('Document not found');
     } else if (error.response?.status === 403) {
       throw new Error('Permission denied');
+    } else if (error.response?.status === 500) {
+      throw new Error('Server error while downloading document');
     }
     throw error;
   }

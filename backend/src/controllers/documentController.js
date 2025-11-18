@@ -346,8 +346,12 @@ const downloadDocument = async (req, res) => {
 
     const document = result.rows[0];
 
+    console.log(`Download request for document ID: ${id}, file_path: ${document.file_path}`);
+
     // Download file from Supabase Storage
     const fileData = await downloadFile(document.file_path, document.mime_type);
+    
+    console.log(`File downloaded successfully, size: ${fileData.data.length} bytes`);
 
     // Log activity
     await logActivity(

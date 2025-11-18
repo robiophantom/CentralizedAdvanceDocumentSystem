@@ -23,9 +23,16 @@ api.interceptors.request.use(
 
 // Add response interceptor to handle auth errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Don't interfere with blob responses (file downloads)
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401) {
+    // Don't redirect on 401 for blob requests (they might fail due to auth but we want to handle it differently)
+    if (error.response?.status === 401 && error.config?.responseType !== 'blob') {
       // Token expired or invalid
       localStorage.removeItem('token');
       window.location.href = '/login';
