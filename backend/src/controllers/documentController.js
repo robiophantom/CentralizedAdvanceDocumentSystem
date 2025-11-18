@@ -7,6 +7,7 @@ const db = require('../config/database');
 const { generateFileName } = require('../utils/fileUpload');
 const { uploadFile, deleteFile: deleteFromStorage } = require('../utils/supabaseStorage');
 const { extractText, cleanText } = require('../utils/textExtraction');
+const { logActivity } = require('../utils/activityLogger');
 const path = require('path');
 
 /**
@@ -73,6 +74,20 @@ const uploadDocument = async (req, res) => {
         );
       }
     }
+
+    // Log activity
+    await logActivity(
+      req.user.id,
+      'upload',
+      'document',
+      document.id,
+      `uploaded a new document: ${document.title}`,
+      {
+        file_name: document.file_name,
+        file_type: document.file_type,
+        file_size: document.file_size,
+      }
+    );
 
     res.status(201).json({
       success: true,
@@ -336,6 +351,19 @@ const deleteDocument = async (req, res) => {
     // Delete from database (cascades to keywords and versions)
     await db.query('DELETE FROM documents WHERE id = $1', [id]);
 
+    // Log activity (before deletion, so we have document info)
+    await logActivity(
+      req.user.id,
+      'delete',
+      'document',
+      parseInt(id),
+      `deleted a document: ${document.title}`,
+      {
+        file_name: document.file_name,
+        file_type: document.file_type,
+      }
+    );
+
     res.json({
       success: true,
       message: 'Document deleted successfully',
@@ -409,10 +437,25 @@ const updateDocument = async (req, res) => {
       }
     }
 
+    const updatedDocument = result.rows[0];
+
+    // Log activity
+    await logActivity(
+      req.user.id,
+      'update',
+      'document',
+      parseInt(id),
+      `updated the document: ${updatedDocument.title}`,
+      {
+        file_name: updatedDocument.file_name,
+        file_type: updatedDocument.file_type,
+      }
+    );
+
     res.json({
       success: true,
       message: 'Document updated successfully',
-      data: result.rows[0],
+      data: updatedDocument,
     });
   } catch (error) {
     console.error('Update document error:', error);
