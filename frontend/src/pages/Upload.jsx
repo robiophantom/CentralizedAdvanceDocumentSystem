@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { uploadDocument } from '../services/documentService';
 
 export default function Upload() {
@@ -14,6 +15,14 @@ export default function Upload() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+
+  // Redirect students who try to access upload page
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'student') {
+      navigate('/');
+    }
+  }, [currentUser, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

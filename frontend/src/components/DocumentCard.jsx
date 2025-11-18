@@ -1,21 +1,36 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaEye, FaEllipsisV, FaDownload, FaShare } from 'react-icons/fa';
+import { FaEye, FaEllipsisV, FaDownload, FaShare, FaTrash } from 'react-icons/fa';
 import { getFileIcon, getFileIconColor, getFileIconBg } from '../utils/fileIcons';
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { deleteDocument } from '../services/documentService';
+import toast from 'react-hot-toast';
 
-export default function DocumentCard({ document }) {
+export default function DocumentCard({ document, onDelete }) {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [showActions, setShowActions] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const FileIcon = getFileIcon(document.fileType);
   const iconColor = getFileIconColor(document.fileType);
   const iconBg = getFileIconBg(document.fileType);
+  
+  // Check if user can delete (faculty/admin can delete their own, admin can delete any)
+  // Note: We check by owner name since we don't have uploaded_by ID in the document object
+  const canDelete = 
+    currentUser?.role === 'admin' || 
+    (currentUser?.role === 'faculty' && (
+      document.owner === currentUser?.full_name || 
+      document.owner === currentUser?.username ||
+      document.owner === currentUser?.email
+    ));
 
   const handleCardClick = () => {
     navigate(`/document/${document.id}`);
   };
 
-  const handleActionClick = (e, action) => {
+  const handleActionClick = async (e, action) => {
     e.stopPropagation();
     if (action === 'view') {
       navigate(`/document/${document.id}`);
@@ -25,6 +40,22 @@ export default function DocumentCard({ document }) {
     } else if (action === 'share') {
       // TODO: Implement share
       console.log('Share:', document.id);
+    } else if (action === 'delete' && canDelete) {
+      if (window.confirm('Are you sure you want to delete this document?')) {
+        setIsDeleting(true);
+        try {
+          await deleteDocument(document.id);
+          toast.success('Document deleted successfully');
+          if (onDelete) {
+            onDelete(document.id);
+          }
+        } catch (error) {
+          toast.error('Failed to delete document');
+          console.error('Delete error:', error);
+        } finally {
+          setIsDeleting(false);
+        }
+      }
     }
     setShowActions(false);
   };
@@ -106,15 +137,18 @@ export default function DocumentCard({ document }) {
           >
             <FaDownload className="w-4 h-4" />
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={(e) => handleActionClick(e, 'share')}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm transition-colors"
-            title="Share"
-          >
-            <FaShare className="w-4 h-4" />
-          </motion.button>
+          {canDelete && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={(e) => handleActionClick(e, 'delete')}
+              disabled={isDeleting}
+              className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm transition-colors disabled:opacity-50"
+              title="Delete"
+            >
+              <FaTrash className="w-4 h-4" />
+            </motion.button>
+          )}
         </div>
       </div>
     </motion.div>

@@ -13,6 +13,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const documentRoutes = require('./routes/documentRoutes');
 const activityRoutes = require('./routes/activityRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 // Initialize Express app
 const app = express();
@@ -62,6 +63,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -82,6 +84,7 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       documents: '/api/documents',
       activities: '/api/activities',
+      users: '/api/users',
       health: '/health',
     },
   });

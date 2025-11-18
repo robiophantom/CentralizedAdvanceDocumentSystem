@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FaChartLine, 
@@ -8,7 +8,8 @@ import {
   FaCog,
   FaChevronLeft,
   FaChevronRight,
-  FaBars
+  FaBars,
+  FaUsers
 } from "react-icons/fa";
 import { useAuth } from "../contexts/AuthContext";
 import { getInitials } from "../utils/timeUtils";
@@ -17,6 +18,23 @@ export default function Sidebar({ theme = "green" }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { currentUser } = useAuth();
+  
+  // Check if desktop on mount
+  const [isDesktop, setIsDesktop] = useState(false);
+  
+  useEffect(() => {
+    const checkDesktop = () => {
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktop(desktop);
+      if (desktop) {
+        setIsOpen(true); // Always open on desktop
+      }
+    };
+    
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
 
   // Color theme config
   const colors =
@@ -34,12 +52,29 @@ export default function Sidebar({ theme = "green" }) {
           active: "bg-green-600 text-white",
         };
 
-  const navItems = [
-    { path: "/", label: "Dashboard", icon: FaChartLine },
-    { path: "/upload", label: "Upload", icon: FaUpload },
-    { path: "/search", label: "Search", icon: FaSearch },
-    { path: "/admin", label: "Admin Panel", icon: FaCog },
-  ];
+  // Role-based navigation items
+  const getNavItems = () => {
+    const userRole = currentUser?.role || 'student';
+    const baseItems = [
+      { path: "/", label: "Dashboard", icon: FaChartLine, roles: ['student', 'faculty', 'admin'] },
+      { path: "/search", label: "Search", icon: FaSearch, roles: ['student', 'faculty', 'admin'] },
+    ];
+
+    // Add upload for faculty and admin
+    if (userRole === 'faculty' || userRole === 'admin') {
+      baseItems.push({ path: "/upload", label: "Upload", icon: FaUpload, roles: ['faculty', 'admin'] });
+    }
+
+    // Add admin panel for admin only
+    if (userRole === 'admin') {
+      baseItems.push({ path: "/admin", label: "Admin Panel", icon: FaCog, roles: ['admin'] });
+      baseItems.push({ path: "/admin/users", label: "User Management", icon: FaUsers, roles: ['admin'] });
+    }
+
+    return baseItems.filter(item => item.roles.includes(userRole));
+  };
+
+  const navItems = getNavItems();
 
   return (
     <>
@@ -56,7 +91,7 @@ export default function Sidebar({ theme = "green" }) {
 
       {/* Mobile Overlay */}
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && !isDesktop && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -71,7 +106,7 @@ export default function Sidebar({ theme = "green" }) {
       <motion.aside
         initial={false}
         animate={{
-          x: isOpen ? 0 : -256,
+          x: isOpen || isDesktop ? 0 : -256,
         }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
         className={`fixed left-0 top-0 h-full w-64 bg-white shadow-2xl z-40 lg:translate-x-0 ${
@@ -93,6 +128,11 @@ export default function Sidebar({ theme = "green" }) {
                   CADMS
                 </h1>
                 <p className="text-sm text-gray-600 mt-1">Documents Hub</p>
+                {currentUser?.role && (
+                  <p className="text-xs text-gray-500 mt-1 capitalize">
+                    {currentUser.role}
+                  </p>
+                )}
               </motion.div>
             )}
             {isCollapsed && (
@@ -131,7 +171,7 @@ export default function Sidebar({ theme = "green" }) {
                 <li key={item.path}>
                   <NavLink
                     to={item.path}
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => !isDesktop && setIsOpen(false)}
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                         isActive
@@ -164,8 +204,8 @@ export default function Sidebar({ theme = "green" }) {
                   <p className="text-sm font-semibold text-gray-800 truncate">
                     {currentUser?.full_name || currentUser?.username || 'User'}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {currentUser?.email}
+                  <p className="text-xs text-gray-500 truncate capitalize">
+                    {currentUser?.role || 'student'}
                   </p>
                 </div>
               )}

@@ -131,15 +131,17 @@ export default function Dashboard({ theme = 'green' }) {
               Manage, search, and track all your documents in one place.
             </motion.p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/upload')}
-            className="hidden md:flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 transition-colors font-medium shadow-lg"
-          >
-            <FaFileUpload className="w-4 h-4" />
-            Upload Document
-          </motion.button>
+          {(currentUser?.role === 'faculty' || currentUser?.role === 'admin') && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/upload')}
+              className="hidden md:flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 transition-colors font-medium shadow-lg"
+            >
+              <FaFileUpload className="w-4 h-4" />
+              Upload Document
+            </motion.button>
+          )}
         </div>
       </motion.div>
 
@@ -197,15 +199,17 @@ export default function Dashboard({ theme = 'green' }) {
               <FaFolder className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg mb-2">No documents uploaded yet</p>
               <p className="text-gray-400 text-sm mb-6">Start by uploading your first document!</p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/upload')}
-                className={`px-6 py-3 ${colors.primary} text-white rounded-lg hover:${colors.primaryDark} transition-colors font-medium shadow-md`}
-              >
-                <FaFileUpload className="w-4 h-4 inline mr-2" />
-                Upload Document
-              </motion.button>
+              {(currentUser?.role === 'faculty' || currentUser?.role === 'admin') && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate('/upload')}
+                  className={`px-6 py-3 ${colors.primary} text-white rounded-lg hover:${colors.primaryDark} transition-colors font-medium shadow-md`}
+                >
+                  <FaFileUpload className="w-4 h-4 inline mr-2" />
+                  Upload Document
+                </motion.button>
+              )}
             </motion.div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -216,7 +220,12 @@ export default function Dashboard({ theme = 'green' }) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <DocumentCard document={doc} />
+                  <DocumentCard 
+                    document={doc} 
+                    onDelete={(id) => {
+                      setDocuments(documents.filter(d => d.id !== id));
+                    }}
+                  />
                 </motion.div>
               ))}
             </div>
@@ -228,18 +237,20 @@ export default function Dashboard({ theme = 'green' }) {
         </div>
       </div>
 
-      {/* Enhanced FAB */}
-      <motion.button
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => navigate('/upload')}
-        className={`fixed bottom-8 right-8 w-16 h-16 ${colors.primary} hover:${colors.primaryDark} text-white rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center text-3xl z-20`}
-        title="Upload new document"
-      >
-        <FaPlus className="w-6 h-6" />
-      </motion.button>
+      {/* Enhanced FAB - Only show for faculty and admin */}
+      {(currentUser?.role === 'faculty' || currentUser?.role === 'admin') && (
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate('/upload')}
+          className={`fixed bottom-8 right-8 w-16 h-16 ${colors.primary} hover:${colors.primaryDark} text-white rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center text-3xl z-20`}
+          title="Upload new document"
+        >
+          <FaPlus className="w-6 h-6" />
+        </motion.button>
+      )}
     </div>
   );
 }

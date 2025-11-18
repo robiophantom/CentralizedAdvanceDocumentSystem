@@ -46,7 +46,7 @@ const register = async (req, res) => {
       `INSERT INTO users (username, email, password_hash, full_name, role) 
        VALUES ($1, $2, $3, $4, $5) 
        RETURNING id, username, email, full_name, role, created_at`,
-      [username, email, password_hash, full_name || null, 'user']
+      [username, email, password_hash, full_name || null, 'student']
     );
 
     const user = result.rows[0];

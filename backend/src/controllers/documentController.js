@@ -13,8 +13,17 @@ const path = require('path');
 /**
  * Upload a new document
  * POST /api/documents/upload
+ * Allowed roles: faculty, admin
  */
 const uploadDocument = async (req, res) => {
+  // Check if user has permission to upload (faculty or admin)
+  if (req.user.role !== 'faculty' && req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Permission denied. Only faculty and admin can upload documents.',
+    });
+  }
+
   if (!req.file) {
     return res.status(400).json({
       success: false,
@@ -337,11 +346,15 @@ const deleteDocument = async (req, res) => {
 
     const document = docResult.rows[0];
 
-    // Check if user owns the document or is admin
-    if (document.uploaded_by !== req.user.id && req.user.role !== 'admin') {
+    // Check if user has permission to delete (faculty/admin can delete their own, admin can delete any)
+    const canDelete = 
+      req.user.role === 'admin' || 
+      (req.user.role === 'faculty' && document.uploaded_by === req.user.id);
+    
+    if (!canDelete) {
       return res.status(403).json({
         success: false,
-        message: 'Permission denied',
+        message: 'Permission denied. Only faculty and admin can delete documents.',
       });
     }
 
@@ -402,10 +415,15 @@ const updateDocument = async (req, res) => {
 
     const document = docResult.rows[0];
 
-    if (document.uploaded_by !== req.user.id && req.user.role !== 'admin') {
+    // Check if user has permission to update (faculty/admin can update their own, admin can update any)
+    const canUpdate = 
+      req.user.role === 'admin' || 
+      (req.user.role === 'faculty' && document.uploaded_by === req.user.id);
+    
+    if (!canUpdate) {
       return res.status(403).json({
         success: false,
-        message: 'Permission denied',
+        message: 'Permission denied. Only faculty and admin can update documents.',
       });
     }
 

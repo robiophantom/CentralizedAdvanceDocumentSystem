@@ -2,12 +2,14 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
+import AdminRoute from './components/AdminRoute';
 import AppLayout from './layouts/AppLayout';
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
 import DocumentView from './pages/DocumentView';
 import SearchResults from './pages/SearchResults';
 import AdminPanel from './pages/AdminPanel';
+import UserManagement from './pages/UserManagement';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
@@ -48,7 +50,16 @@ function App() {
               <Route path="upload" element={<Upload />} />
               <Route path="document/:id" element={<DocumentView />} />
               <Route path="search" element={<SearchResults />} />
-              <Route path="admin" element={<AdminPanel />} />
+              <Route path="admin" element={
+                <AdminRoute>
+                  <AdminPanel />
+                </AdminRoute>
+              } />
+              <Route path="admin/users" element={
+                <AdminRoute>
+                  <UserManagement />
+                </AdminRoute>
+              } />
             </Route>
           </Route>
         </Routes>
