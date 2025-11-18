@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaIdCard } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaIdCard, FaUserShield, FaUserGraduate, FaUserTie } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/Button';
 import toast from 'react-hot-toast';
@@ -13,6 +13,7 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'student', // Default role
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -75,6 +76,7 @@ const Register = () => {
         email: formData.email,
         password: formData.password,
         full_name: formData.fullName,
+        role: formData.role,
       });
 
       if (result.success) {
@@ -187,6 +189,39 @@ const Register = () => {
                   onChange={handleChange}
                 />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+                Account Type
+              </label>
+              <div className="relative">
+                {formData.role === 'student' && <FaUserGraduate className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-500" />}
+                {formData.role === 'faculty' && <FaUserTie className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-purple-500" />}
+                {formData.role === 'admin' && <FaUserShield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-red-500" />}
+                <select
+                  id="role"
+                  name="role"
+                  required
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="w-full pl-10 pr-4 py-3 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer"
+                >
+                  <option value="student">Student</option>
+                  <option value="faculty">Faculty</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                {formData.role === 'student' && 'Students can view and search documents only.'}
+                {formData.role === 'faculty' && 'Faculty can upload, edit, and delete their own documents.'}
+                {formData.role === 'admin' && 'Admins have full access including user management.'}
+              </p>
             </div>
 
             <div>

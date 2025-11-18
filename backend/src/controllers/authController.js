@@ -13,7 +13,7 @@ require('dotenv').config();
  * POST /api/auth/register
  */
 const register = async (req, res) => {
-  const { username, email, password, full_name } = req.body;
+  const { username, email, password, full_name, role } = req.body;
 
   // Validate input
   if (!username || !email || !password) {
@@ -22,6 +22,10 @@ const register = async (req, res) => {
       message: 'Username, email, and password are required',
     });
   }
+
+  // Validate role if provided
+  const validRoles = ['student', 'faculty', 'admin'];
+  const userRole = role && validRoles.includes(role.toLowerCase()) ? role.toLowerCase() : 'student';
 
   try {
     // Check if user already exists
@@ -46,7 +50,7 @@ const register = async (req, res) => {
       `INSERT INTO users (username, email, password_hash, full_name, role) 
        VALUES ($1, $2, $3, $4, $5) 
        RETURNING id, username, email, full_name, role, created_at`,
-      [username, email, password_hash, full_name || null, 'student']
+      [username, email, password_hash, full_name || null, userRole]
     );
 
     const user = result.rows[0];
